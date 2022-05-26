@@ -1,0 +1,19 @@
+version: '3.8'
+
+volumes:
+  backend_node_modules:
+
+services:
+  backend:
+    container_name: backend
+    build:
+      context: ./server
+    ports:
+      - "3500:3500"
+    environment:
+      - "NODE_ENV=dev"
+      - "PORT=3500"
+    volumes:
+      - ./server/:/opt/app
+      - backend_node_modules/:/opt/app/node_modules
+    restart: unless-stopped
