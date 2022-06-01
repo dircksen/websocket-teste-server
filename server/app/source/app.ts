@@ -3,6 +3,7 @@ import { Server as ServerIo } from 'socket.io';
 import http from 'http';
 import cors from 'cors';
 import AuthService from './services/auth_service';
+import { Connection } from './managers/connection';
 
 
 const app = express();
@@ -17,20 +18,26 @@ const io = new ServerIo(server, {
 });
 
 io.use((socket, next) => {
-  // let tokenObject = JSON.parse(socket.handshake.query.token)
-  // console.log(authService.authUser(socket.handshake.query.token));
-  // if(!authService.authUser(data.token)){
-  //   socket.emit('authentication failed', { message: 'Disconnected', session: socket.id }); 
-  //   socket.disconnect();
-  // }
-  // socket.emit('authenticated', { message: 'Ready to chat', session: socket.id }); 
-  console.log(socket.handshake.query.token)
-  return socket.disconnect();
+  let tokenObject:string = '';
+  if ((typeof socket.handshake.query.token) === 'string' )
+      tokenObject = <string>socket.handshake.query.token;
+  else{
+    socket.emit('authentication failed', { message: 'Disconnected', session: socket.id });
+    socket.disconnect();
+  }
+  if (!authService.authUser(tokenObject)) {
+    socket.emit('authentication failed', { message: 'Disconnected', session: socket.id });
+    socket.disconnect();
+  }else{
+    socket.emit('authenticated', { message: 'Ready to chat', session: socket.id });
+    console.log(socket.handshake.query.token)
+  }
+  return next();
 });
 
 io.on('connection', socket => {
-  
-  socket.emit('on connected', { message: 'connected', session: socket.id }); 
+
+  socket.emit('on connected', { message: 'connected', session: socket.id });
   console.log(socket.id);
 
   socket.on('on loaded', data => {
@@ -43,7 +50,7 @@ io.on('connection', socket => {
       user: chat.session.id,
       message: chat.message,
       timesmap: chat.timestamp,
-      room : chat.room
+      room: chat.room
     });
     // io.in("room1").socketsLeave("room1");
   });
