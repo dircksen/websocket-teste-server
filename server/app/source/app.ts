@@ -3,7 +3,8 @@ import { Server as ServerIo } from 'socket.io';
 import http from 'http';
 import cors from 'cors';
 import AuthService from './services/auth_service';
-import { Connection } from './managers/connection';
+import { Connection } from './classes/connection';
+import { info } from 'console';
 
 
 const app = express();
@@ -20,7 +21,7 @@ const io = new ServerIo(server, {
 io.use((socket, next) => {
   let tokenObject:string = '';
   if ((typeof socket.handshake.query.token) === 'string' )
-      tokenObject = <string>socket.handshake.query.token;
+      tokenObject = JSON.parse(<string>socket.handshake.query.token);
   else{
     socket.emit('authentication failed', { message: 'Disconnected', session: socket.id });
     socket.disconnect();
@@ -36,24 +37,27 @@ io.use((socket, next) => {
 });
 
 io.on('connection', socket => {
+  let tokenObject =  JSON.parse(<string>socket.handshake.query.token);
+  const connection = new Connection(tokenObject?.course_class_id, socket.id, tokenObject?.course_id, tokenObject?.user_id);
 
-  socket.emit('on connected', { message: 'connected', session: socket.id });
-  console.log(socket.id);
+  socket.emit('on connected', { message: 'connected', session: connection.socket_id });
 
   socket.on('on loaded', data => {
-
+    socket.join(connection.course_class_id);
+    console.log('joined room ' + connection.course_class_id);
   });
 
-  socket.on('new message', chat => {
-    console.log(chat)
-    io.to(chat.room).emit('message received', {
-      user: chat.session.id,
-      message: chat.message,
-      timesmap: chat.timestamp,
-      room: chat.room
+  socket.on('new message', data => {
+    io.to(connection.course_class_id).emit('message received', {
+      message: data.message,
+      timestamp: data.timestamp,
     });
-    // io.in("room1").socketsLeave("room1");
   });
+
+  socket.on('on closing', data => {
+     io.in(connection.course_class_id).socketsLeave(connection.course_class_id);
+  });
+
 });
 
 export default server;

@@ -5,7 +5,7 @@ export class Connection {
     private _user_id: string;
     
     
-    constructor (courseClassId, socketId, courseId, userId) {
+    constructor (courseClassId:string, socketId:string, courseId:string, userId:string) {
         this._course_class_id = courseClassId;
         this._socket_id = socketId;
         this._course_id = courseId;
