@@ -2,6 +2,8 @@ version: '3.8'
 
 volumes:
   backend_node_modules:
+  mongo_volume:
+
 
 services:
   backend:
@@ -17,3 +19,19 @@ services:
       - ./server/:/opt/app
       - backend_node_modules/:/opt/app/node_modules
     restart: unless-stopped
+
+  redis:
+    container_name: redis
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  mongo:
+    container_name: mongo
+    image: mongo
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    volumes:
+      - mongo_volume:/data/db
