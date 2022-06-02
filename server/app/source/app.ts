@@ -1,10 +1,10 @@
-import express, { Request, Response } from 'express';
+import 'dotenv/config';
+import express from 'express';
 import { Server as ServerIo } from 'socket.io';
 import http from 'http';
 import cors from 'cors';
 import AuthService from './services/auth_service';
 import { Connection } from './classes/connection';
-import { info } from 'console';
 
 
 const app = express();
@@ -19,26 +19,30 @@ const io = new ServerIo(server, {
 });
 
 io.use((socket, next) => {
-  let tokenObject:string = '';
-  if ((typeof socket.handshake.query.token) === 'string' )
-      tokenObject = JSON.parse(<string>socket.handshake.query.token);
-  else{
+  let tokenObject: string = '';
+  if ((typeof socket.handshake.query.token) === 'string')
+    tokenObject = JSON.parse(<string>socket.handshake.query.token);
+  else {
     socket.emit('authentication failed', { message: 'Disconnected', session: socket.id });
     socket.disconnect();
   }
   if (!authService.authUser(tokenObject)) {
     socket.emit('authentication failed', { message: 'Disconnected', session: socket.id });
     socket.disconnect();
-  }else{
+  } else {
     socket.emit('authenticated', { message: 'Ready to chat', session: socket.id });
-    console.log(socket.handshake.query.token)
+    console.log(socket.handshake.query.token);
   }
   return next();
 });
 
 io.on('connection', socket => {
-  let tokenObject =  JSON.parse(<string>socket.handshake.query.token);
-  const connection = new Connection(tokenObject?.course_class_id, socket.id, tokenObject?.course_id, tokenObject?.user_id);
+  let tokenObject = JSON.parse(<string>socket.handshake.query.token);
+  const connection = new Connection(
+    tokenObject?.course_class_id,
+    socket.id, tokenObject?.course_id,
+    tokenObject?.user_id
+  );
 
   socket.emit('on connected', { message: 'connected', session: connection.socket_id });
 
@@ -55,7 +59,7 @@ io.on('connection', socket => {
   });
 
   socket.on('on closing', data => {
-     io.in(connection.course_class_id).socketsLeave(connection.course_class_id);
+    io.in(connection.course_class_id).socketsLeave(connection.course_class_id);
   });
 
 });
